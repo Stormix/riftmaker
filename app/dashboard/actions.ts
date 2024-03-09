@@ -3,7 +3,7 @@
 import { authOptions } from '@/lib/auth';
 import { getPotentialPlayers } from '@/lib/draft';
 import prisma from '@/lib/prisma';
-import { PlayerRole, Tournament, TournamentStatus, User } from '@prisma/client';
+import { PlayerRole, TournamentStatus, type User } from '@prisma/client';
 import { sample, shuffle } from 'lodash';
 import { getServerSession } from 'next-auth';
 import { revalidatePath } from 'next/cache';
@@ -87,7 +87,7 @@ export const endTournament = async (id: string) => {
       },
     });
 
-    revalidatePath(`/dashboard`);
+    revalidatePath('/dashboard');
 
     return { message: 'Success', id: updatedTournament.id };
   } catch (e) {
@@ -303,8 +303,8 @@ export const saveTournamentTeam = async (tournamentId: string, teamName: string,
       },
     });
 
-    revalidatePath(`/tournament/[tournamentId]`, 'page');
-    revalidatePath(`/tournament/[tournamentId]/manage`, 'page');
+    revalidatePath('/tournament/[tournamentId]', 'page');
+    revalidatePath('/tournament/[tournamentId]/manage', 'page');
 
     return { message: 'Success', data: created };
   } catch (e) {

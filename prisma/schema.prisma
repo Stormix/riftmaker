@@ -4,9 +4,13 @@ datasource db {
 }
 
 generator client {
-  provider = "prisma-client-js"
-  binaryTargets = ["native", "debian-openssl-1.1.x", "debian-openssl-3.0.x", "linux-musl","linux-musl-openssl-3.0.x"]
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-1.1.x", "debian-openssl-3.0.x", "linux-musl", "linux-musl-openssl-3.0.x"]
 }
+
+// generator custom_generator {
+//   provider = "prisma-generator-fake-data"
+// }
 
 model Account {
   id                String  @id @default(cuid())
@@ -47,11 +51,11 @@ model User {
   isAdmin  Boolean @default(false)
   isBanned Boolean @default(false)
 
-  riotId String?
-  accountId BigInt?  
+  riotId    String?
+  accountId BigInt?
 
-  role   PlayerRole?
-  elo    String?
+  role PlayerRole?
+  elo  String?
 
   teams       TeamPlayer[]
   tournaments Tournament[] @relation("TournamentParticipants")
@@ -84,6 +88,10 @@ enum TournamentStatus {
   FINISHED
 }
 
+enum StageType {
+  SINGLE_ELIMINATION
+}
+
 model TeamPlayer {
   id String @id @default(cuid())
 
@@ -114,9 +122,8 @@ model Tournament {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  kickedPlayers User[] @relation("KickedPlayers")
-
-  stages Stage[] 
+  kickedPlayers User[]    @relation("KickedPlayers")
+  Bracket       Bracket[]
 }
 
 model Team {
@@ -130,312 +137,73 @@ model Team {
 
   tournament   Tournament? @relation(fields: [tournamentId], references: [id])
   tournamentId String?
+
+  brackets Bracket[]
+  MatchPlayer MatchPlayer[]
+  Match       Match[]
 }
 
-// The only supported types of stage.
-enum StageType {
-  ROUND_ROBIN
-  SINGLE_ELIMINATION
-  DOUBLE_ELIMINATION
-}
-
-//  The possible types for a double elimination stage's grand final.
-enum GrandFinalType {
-  NONE
-  SIMPLE
-  DOUBLE
-}
-
-// The possible modes for a round-robin stage.
-enum RoundRobinMode {
-  SIMPLE
-  DOUBLE
-}
-
-// Used to order seeds.
-enum SeedOrdering {
-  NATURAL
-  REVERSE
-  HALF_SHIFT
-  REVERSE_HALF_SHIFT
-  PAIR_FLIP
-  INNER_OUTER
-  GROUPS_EFFORT_BALANCED
-  GROUPS_SEED_OPTIMIZED
-  GROUPS_BRACKET_OPTIMIZED
-}
-
-// The possible results of a duel for a participant.
-enum MatchResult {
-  WIN
-  DRAW
-  LOSS
-}
-
-
-// The possible status for a match.
-enum MatchStatus {
-  // The two matches leading to this one are not completed yet.
-  LOCKED
-  // One participant is ready and waiting for the other one.
-  WAITING
-  // Both participants are ready to start.
-  READY
-  // The match is running.
-  RUNNING
-  // The match is completed.
-  COMPLETED
-  // At least one participant completed his following match.
-  ARCHIVED
-}
-
-// The results of a participant in a match.
-model ParticipantMatchResult {
-  id           String @id @default(cuid())
-  // If `null`, the participant is to be determined.
-  participantId String?
-  participant   Participant? @relation(fields: [participantId], references: [id])
-  // Indicates where the participant comes from.
-  position      Int?
-  // If this participant forfeits, the other automatically wins.
-  forfeit       Boolean?
-  // The current score of the participant.
-  score         Int?
-  // Tells what is the result of a duel for this participant.
-  result        MatchResult?
-
-  opponent1MatchId String?   @unique
-  opponent1Match   Match? @relation("opponent1", fields: [opponent1MatchId], references: [id])
-
-  opponent2MatchId String?   @unique
-  opponent2Match   Match? @relation("opponent2", fields: [opponent2MatchId], references: [id])
-}
-
-// The results of a participant in a match game.
-model ParticipantMatchGameResult {
-  id            String @id @default(cuid())
-  // If `null`, the participant is to be determined.
-  participantId String?
-  participant   Participant? @relation(fields: [participantId], references: [id])
-  // Indicates where the participant comes from.
-  position      Int?
-  // If this participant forfeits, the other automatically wins.
-  forfeit       Boolean?
-  // The current score of the participant.
-  score         Int?
-  // Tells what is the result of a duel for this participant.
-  result        MatchResult?
-
-  opponent1MatchGameId String?       @unique
-  opponent1MatchGame   MatchGame? @relation("opponent1", fields: [opponent1MatchGameId], references: [id])
-
-  opponent2MatchGameId String?       @unique
-  opponent2MatchGame   MatchGame? @relation("opponent2", fields: [opponent2MatchGameId], references: [id])
-}
-
-//  |----------------------------------------------------------------|
-//  | Contains the types which are persisted in the chosen storage.
-//  |----------------------------------------------------------------|
-
-// A participant of a stage (team or individual).
-model Participant {
-  id String @id @default(cuid())
-
-  tournamentId String
-
-  // Name of the participant
+model Bracket {
+  id   String @id @default(cuid())
   name String
-
-  // Match results of the participant in the tournament
-  matchResults     ParticipantMatchResult[]
-  // Match game results of the participant in the tournament
-  matchGameResults ParticipantMatchGameResult[]
-}
-
-// A stage, which can be a round-robin stage or a single/double elimination stage.
-model Stage {
-  id String @id @default(cuid())
-
-  tournamentId String
-
-  // Name of the stage
-  name String
-
-  // Type of the stage
   type StageType
 
-  // Settings of the stage
-  settings StageSettings?
+  tournament   Tournament? @relation(fields: [tournamentId], references: [id])
+  tournamentId String?
 
-  // The number of the stage in its tournament
-  number Int
+  teams Team[]
 
-  // The group of this stage
-  groups     Group[]
-  // The rounds of this stage
-  rounds     Round[]
-  // The matches of this stage
-  matches    Match[]
-  // The match games of this stage
-  matchGames MatchGame[]
-
-  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-}
-
-// A group of a stage.
-model Group {
-  id String @id @default(cuid())
-
-  // ID of the parent stage.
-  stageId String
-  stage   Stage @relation(fields: [stageId], references: [id], onDelete: Cascade)
-
-  // The number of the group in its stage
-  number Int
-
-  // The rounds of this group
   rounds Round[]
 
-  // The matches of this group
-  matches Match[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-// A round of a group.
 model Round {
-  id String @id @default(cuid())
+  id   String @id @default(cuid())
+  name String
 
-  // ID of the parent stage.
-  stageId String
-  stage   Stage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  isConsolation Boolean @default(false)
 
-  // ID of the parent group.
-  groupId String
-  group   Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  bracket   Bracket? @relation(fields: [bracketId], references: [id])
+  bracketId String?
 
-  // The number of the round in its group
-  number Int
-
-  // The matches of this round
   matches Match[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("BracketRound")
 }
 
 model Match {
-  id  String @id @default(cuid())
-
-  // Status of the match.
-  status MatchStatus
-
-  // First opponent of the match.
-  opponent1Result ParticipantMatchResult? @relation("opponent1")
-
-  // Second opponent of the match.
-  opponent2Result ParticipantMatchResult? @relation("opponent2")
-
-  // ID of the parent stage.
-  stageId String
-  stage   Stage @relation(fields: [stageId], references: [id], onDelete: Cascade)
-
-  // ID of the parent group.
-  groupId String
-  group   Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
-
-  roundId String
-  round   Round @relation(fields: [roundId], references: [id], onDelete: Cascade)
-
-  // The number of the match in its round
-  number Int
-
-  // The count of match games this match has. Can be `0` if it's a simple match, or a positive number for "Best Of" matches.
-  childCount Int
-
-  // The games of the match
-  games MatchGame[]
-}
-
-model MatchGame {
   id String @id @default(cuid())
 
-  // Status of the match.
-  status MatchStatus
+  round   Round?  @relation(fields: [roundId], references: [id])
+  roundId String?
 
-  // First opponent of the match.
-  opponent1Result ParticipantMatchGameResult? @relation("opponent1")
+  players MatchPlayer[]
 
-  // Second opponent of the match.
-  opponent2Result ParticipantMatchGameResult? @relation("opponent2")
+  isFinished Boolean? @default(false)
 
-  // ID of the parent stage.
-  stageId String
-  stage   Stage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  winnerId String?
+  winner   Team?   @relation(fields: [winnerId], references: [id])
 
-  // ID of the parent match.
-  matchId String
-  match   Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
-
-  // The number of the match in its round
-  number Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-//  |----------------------------------------------------------------|
-//  | Contains everything which is given by the user as input.
-//  |----------------------------------------------------------------|
-
-// The possible settings for a stage.
-model StageSettings {
+model MatchPlayer {
   id String @id @default(cuid())
 
-  stageId  String   @unique
-  stage   Stage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  match   Match?  @relation(fields: [matchId], references: [id])
+  matchId String?
 
-  // The number of participants
-  size Int?
+  score Int?
 
-  // A list of ordering methods to apply to the seeding.
-  // 
-  // - For a round-robin stage: 1 item required (**with** `"groups."` prefix).
-  //   - Used to distribute in groups.
-  // - For a simple elimination stage, 1 item required (**without** `"groups."` prefix).
-  //   - Used to distribute in round 1.
-  // - For a double elimination stage, 1 item required, 3+ items supported (**without** `"groups."` prefix).
-  //   - Item 1 (required) - Used to distribute in WB round 1.
-  //   - Item 2 - Used to distribute WB losers in LB round 1.
-  //   - Items 3+ - Used to distribute WB losers in LB minor rounds (1 per round).
-  seedOrdering SeedOrdering[]
+  teamId String
+  team   Team   @relation(fields: [teamId], references: [id])
 
-  // Whether to balance BYEs in the seeding of an elimination stage.
-  // This prevents having BYE against BYE in matches.
-  balanceByes Boolean?
-
-  // All matches of the stage will have this child count.
-  // This can later be overridden for certain groups, rounds or matches.
-  matchesChildCount Int?
-
-  // Number of groups in a round-robin stage.
-  groupCount Int?
-
-  // The mode for the round-robin stage.
-  //
-  // - If `simple`, each participant plays each opponent once.
-  // - If `double`, each participant plays each opponent twice, once at home and once away.
-  roundRobinMode RoundRobinMode?
-
-  // A list of seeds per group for a round-robin stage to be manually ordered.
-  //
-  // Seed ordering is ignored if this property is given.
-  // **Hint**: Should be Int[][]
-  manualOrdering Json?
-
-  // Optional final between semi-final losers.
-  consolationFinal Boolean?
-
-  // Whether to skip the first round of the WB of a double elimination stage.
-  skipFirstRound Boolean?
-
-  // Optional grand final between WB and LB winners.
-  //
-  // - If `none`, there is no grand final.
-  // - If `simple`, the final is a single match. The winner is the winner of the stage.
-  // - If `double`, if the WB winner wins, he's the winner of the stage. But if he loses, the final is reset and there is a very last match.
-  // It might be fairer since it gives the WB winner the right to lose once during the stage...
-  grandFinal GrandFinalType?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

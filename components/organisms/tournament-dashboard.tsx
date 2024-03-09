@@ -41,7 +41,7 @@ const TournamentDashboardConsumer = ({ tournamentId }: TournamentDashboardProps)
   const tournament = data!.data;
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 ">
       <div className="flex flex-row justify-between gap-4 font-sans flex-grow">
         <div className="flex gap-4 items-center">
           <h1 className="text-4xl font-bold">{tournament.name}</h1>

@@ -1,4 +1,3 @@
-import { StageType } from '@/types/bracket';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -13,6 +12,7 @@ import { MultiSelect } from '../ui/multi-select';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useToast } from '../ui/use-toast';
 import useAction from '@/hooks/useAction';
+import { StageType } from '@prisma/client';
 
 interface CreateBracketProps {
   tournament: TournamentData;
@@ -29,7 +29,7 @@ const CreateBracket = ({ tournament }: CreateBracketProps) => {
     resolver: zodResolver(createBracketSchema),
     defaultValues: {
       name: '',
-      type: StageType.SingleElimination,
+      type: StageType.SINGLE_ELIMINATION,
       teams: [],
     },
   });
@@ -44,7 +44,12 @@ const CreateBracket = ({ tournament }: CreateBracketProps) => {
   });
 
   const onCreate = async (data: z.infer<typeof createBracketSchema>) => {
-    await execute(tournament.id, data.name, data.type, data.teams);
+    await execute({
+      tournamentId: tournament.id,
+      bracketName: data.name,
+      teamsIds: data.teams,
+      stageType: data.type,
+    });
   };
 
   return (

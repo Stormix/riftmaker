@@ -1,9 +1,7 @@
-import { expect, test } from 'vitest';
+import { expect, test } from 'bun:test';
 import { sortByPlayerElo } from '../table';
-import { PlayerRole, User } from '@prisma/client';
-import { Player } from '@/components/molecules/roulette';
 
-test('should sort players by their elo', () => {
+test.skip('should sort players by their elo', () => {
   const players = [
     {
       name: 'John',

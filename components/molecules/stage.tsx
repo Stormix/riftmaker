@@ -1,12 +1,15 @@
+'use client';
+
 import { TournamentData } from '@/app/api/tournament/[tournamentId]/route';
 import { deleteStage } from '@/app/tournament/[tournamentId]/actions';
 import useAction from '@/hooks/useAction';
-import { Round, Stage, Match } from 'brackets-model';
+import { Match, Round, Stage } from 'brackets-model';
 import { TrashIcon } from 'lucide-react';
 import { useMemo } from 'react';
+import { MatchWithTeams, StageProvider, useStage } from '../providers/stage-provider';
 import { Button } from '../ui/button';
 import { toast } from '../ui/use-toast';
-import { MatchWithTeams, StageProvider, useStage } from '../providers/stage-provider';
+import EditMatch from './edit-match';
 
 interface StageProps {
   tournament: TournamentData;
@@ -23,14 +26,36 @@ interface MatchProps {
   index: number;
 }
 
+interface OpponentCard {
+  opponent: MatchWithTeams['opponent1'];
+  score?: number;
+}
+
+const OpponentCard = ({ opponent, score }: OpponentCard) => {
+  return (
+    <div className="bg-card flex flex-row gap-4 w-full shadow-md">
+      <div className="px-8 py-2 flex flex-row gap-2 justify-between w-full">
+        <div className="">{opponent.team?.name ?? 'TBD'}</div>
+        <div className="font-bold">{score ?? '-'}</div>
+      </div>
+    </div>
+  );
+};
+
 const Match = ({ match }: MatchProps) => {
   const { tournament } = useStage();
-  console.log(match);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="bg-card px-8 py-2">{match.opponent1?.team?.name ?? 'TBD'}</div>
-      <div className="bg-card px-8 py-2">{match.opponent2?.team?.name ?? 'TBD'}</div>
+    <div className="flex flex-row gap-4">
+      <div className="flex flex-col gap-2 flex-grow">
+        <OpponentCard opponent={match.opponent1} />
+        <OpponentCard opponent={match.opponent2} />
+      </div>
+      <div className="flex items-center">
+        {match.opponent1.team && match.opponent2.team && tournament && (
+          <EditMatch match={match} tournament={tournament} />
+        )}
+      </div>
     </div>
   );
 };
@@ -42,8 +67,8 @@ const Round = ({ round, index }: RoundProps) => {
     [matchesWithTeams, round.id],
   );
   return (
-    <div className="flex flex-col gap-4">
-      <div className="py-4 px-8">
+    <div className="flex flex-col gap-4 w-96 border border-input px-4">
+      <div className="py-4 px-8 text-center font-bold border-b border-input">
         {roundsByGroup?.[round.group_id].length === 1
           ? 'Consolation Final'
           : roundsByGroup?.[round.group_id].length === index + 1
@@ -72,7 +97,7 @@ const StageConsumer = () => {
   if (!stage || !tournament) return null;
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col overflow-auto">
       <div className="flex justify-between my-8">
         <h2 className="text-2xl font-bold">Stage: {stage.name}</h2>
         <Button

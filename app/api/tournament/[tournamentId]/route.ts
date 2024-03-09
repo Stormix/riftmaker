@@ -1,9 +1,7 @@
-import manager from '@/lib/bracket';
 import { mapPlayer } from '@/lib/draft';
-import prisma from '@/lib/prisma';
 import { PlayerRole, Team, Tournament, User } from '@prisma/client';
-import { NextApiRequest } from 'next';
 import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
 
 export async function GET(
   request: NextRequest,
@@ -78,7 +76,7 @@ const mapTournament = async (
   },
 ) => ({
   ...tournament,
-  brackets: await manager.get.tournamentData(tournament.id),
+  brackets: null,
   participants: tournament.participants.map((participant) => ({
     ...mapPlayer(participant),
     tournamentId: tournament.id,
